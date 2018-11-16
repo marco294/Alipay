@@ -110,15 +110,14 @@ class SdkPayment
         $parameter = array(
             'service' => 'forex_refund',
             'partner' => trim($this->partner),
-            '_input_charset' => trim(strtolower($this->_input_charset)),
+            '_input_charset' => $this->_input_charset,
             'out_return_no' => $this->out_return_no,
             'out_trade_no' => $this->out_trade_no,
             'return_amount' => $this->return_amount,
             'currency' => 'HKD',
 //            'gmt_return' => $this->gmt_return,
             'reason' => $this->return_reason,
-            'notify_url' => $this->notify_url,
-            'product_code' => 'NEW_OVERSEAS_SELLER',
+//            'notify_url' => $this->notify_url,
         );
         $para = $this->buildRequestPara($parameter);
         return $this->sendRefundRequest($this->__http_url.'?'.$this->createLinkstringUrlencode($para));
