@@ -115,9 +115,10 @@ class SdkPayment
             'out_trade_no' => $this->out_trade_no,
             'return_amount' => $this->return_amount,
             'currency' => 'HKD',
-//            'gmt_return' => $this->gmt_return,
+            'gmt_return' => $this->gmt_return,
             'reason' => $this->return_reason,
-//            'notify_url' => $this->notify_url,
+            'notify_url' => $this->notify_url,
+            'is_sync' => 'N'
         );
         $para = $this->buildRequestPara($parameter);
         return $this->sendRefundRequest($this->__http_url.'?'.$this->createLinkstringUrlencode($para));
