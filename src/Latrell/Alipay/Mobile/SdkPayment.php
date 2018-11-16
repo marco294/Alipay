@@ -10,6 +10,8 @@ class SdkPayment
 
     private $__http_verify_url = 'http://notify.alipay.com/trade/notify_query.do?';
 
+    private $__http_url = 'https://openapi.alipaydev.com/gateway.do';
+
     private $service = 'mobile.securitypay.pay';
 
     private $partner;
@@ -25,6 +27,15 @@ class SdkPayment
     private $notify_url;
 
     private $out_trade_no;
+
+    private $out_return_no;
+
+    private $return_amount;
+
+    //Refund Transaction time. YYYYMMDDHHMMSS,  Beijing Time
+    private $gmt_return;
+
+    private $return_reason;
 
     private $subject;
 
@@ -83,15 +94,29 @@ class SdkPayment
 //            'version' => '1.0'
         );
 
-        $p = array();
-        foreach ($parameter as $key => $value) {
-            $p[$key] = '"' . $value . '"';
-        }
-
         $para = $this->buildRequestPara($parameter);
 
 //        Log::info('Request string for alipay: ' . $this->createLinkstringUrlencode($para));
         return $this->createLinkstringUrlencode($para);
+    }
+
+    public function requestRefund()
+    {
+        $parameter = array(
+            'service' => 'forex_refund',
+            'partner' => trim($this->partner),
+            '_input_charset' => trim(strtolower($this->_input_charset)),
+            'out_return_no' => $this->out_return_no,
+            'out_trade_no' => $this->out_trade_no,
+            'return_amount' => $this->return_amount,
+            'currency' => 'HKD',
+            'gmt_return' => $this->gmt_return,
+            'reason' => $this->return_reason,
+            'notify_url' => $this->notify_url,
+            'is_sync' => 'N'
+        );
+        $para = $this->buildRequestPara($parameter);
+        return $this->sendRefundRequest($this->__http_url.'?'.$this->createLinkstringUrlencode($para));
     }
 
     /**
@@ -145,6 +170,35 @@ class SdkPayment
     public function setOutTradeNo($out_trade_no)
     {
         $this->out_trade_no = $out_trade_no;
+        return $this;
+    }
+
+    public function setOutReturnNo($out_return_no)
+    {
+        $this->out_return_no = $out_return_no;
+        return $this;
+    }
+
+    public function setReturnAmount($return_amount)
+    {
+        $this->return_amount = $return_amount;
+        return $this;
+    }
+
+    public function setGmtReturnTime($return_time)
+    {
+        $this->gmt_return = $return_time;
+        return $this;
+    }
+
+    public function setReturnReason($reason)
+    {
+        $this->return_reason = $reason;
+        return $this;
+    }
+
+    public function setAlipayServerUrl($url){
+        $this->__http_url = $url;
         return $this;
     }
 
@@ -479,6 +533,20 @@ class SdkPayment
     {
         $curl = curl_init($url);
 //        curl_setopt($curl, CURLOPT_HEADER, 0); // 过滤HTTP头
+        curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); // 显示输出结果
+//        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true); //SSL证书认证
+//        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2); //严格认证
+//        curl_setopt($curl, CURLOPT_CAINFO, $cacert_url); //证书地址
+        $responseText = curl_exec($curl);
+        //var_dump( curl_error($curl) );//如果执行curl过程中出现异常，可打开此开关，以便查看异常内容
+        curl_close($curl);
+
+        return $responseText;
+    }
+
+    private function sendRefundRequest($url){
+        $curl = curl_init($url);
+        //        curl_setopt($curl, CURLOPT_HEADER, 0); // 过滤HTTP头
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); // 显示输出结果
 //        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true); //SSL证书认证
 //        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2); //严格认证
