@@ -93,6 +93,11 @@ class SdkPayment
 //            'method' => 'alipay.trade.app.pay',
 //            'version' => '1.0'
         );
+        
+        $p = array();
+        foreach ($parameter as $key => $value) {
+            $p[$key] = '"' . $value . '"';
+        }
 
         $para = $this->buildRequestPara($parameter);
 
