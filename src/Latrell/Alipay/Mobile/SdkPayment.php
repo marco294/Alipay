@@ -4,6 +4,10 @@ namespace Latrell\Alipay\Mobile;
 
 class SdkPayment
 {
+    const pay_service = 'mobile.securitypay.pay';
+
+    const refund_service = 'forex_refund';
+
     private $__https_sandbox_verify_url = 'https://openapi.alipaydev.com/gateway.do?service=notify_verify&';
 
     private $__https_verify_url = 'https://mapi.alipay.com/gateway.do?service=notify_verify&';
@@ -11,8 +15,6 @@ class SdkPayment
     private $__http_verify_url = 'http://notify.alipay.com/trade/notify_query.do?';
 
     private $__http_url = 'https://openapi.alipaydev.com/gateway.do';
-
-    private $service = 'mobile.securitypay.pay';
 
     private $partner;
 
@@ -32,7 +34,7 @@ class SdkPayment
 
     private $return_amount;
 
-    //Refund Transaction time. YYYYMMDDHHMMSS,  Beijing Time
+    // Refund Transaction time. YYYYMMDDHHMMSS,  Beijing Time
     private $gmt_return;
 
     private $return_reason;
@@ -79,7 +81,7 @@ class SdkPayment
             'body' => $this->body,
             'total_fee' => $this->total_fee,
             'notify_url' => $this->notify_url,
-            'service' => $this->service,
+            'service' => self::pay_service,
             'payment_type' => $this->payment_type,
             '_input_charset' => trim(strtolower($this->_input_charset)),
             'payment_inst' => $this->payment_inst,
@@ -89,26 +91,19 @@ class SdkPayment
             'currency' => 'HKD',
             'product_code' => 'NEW_WAP_OVERSEAS_SELLER',
             'forex_biz' => 'FP',
-//            'app_id' => 'com.bullb.heals',
 //            'method' => 'alipay.trade.app.pay',
 //            'version' => '1.0'
         );
 
-        $p = array();
-        foreach ($parameter as $key => $value) {
-            $p[$key] = '"' . $value . '"';
-        }
-
         $para = $this->buildRequestPara($parameter);
 
-//        Log::info('Request string for alipay: ' . $this->createLinkstringUrlencode($para));
         return $this->createLinkstringUrlencode($para);
     }
 
     public function requestRefund()
     {
         $parameter = array(
-            'service' => 'forex_refund',
+            'service' => self::refund_service,
             'partner' => trim($this->partner),
             '_input_charset' => $this->_input_charset,
             'out_return_no' => $this->out_return_no,
@@ -120,8 +115,10 @@ class SdkPayment
             'notify_url' => $this->notify_url,
             'is_sync' => 'N'
         );
-        $para = $this->buildRequestPara($parameter);
-        return $this->sendRefundRequest($this->__http_url.'?'.$this->createLinkstringUrlencode($para));
+
+        $para = $this->buildRequestPara($parameter, false);
+
+        return $this->sendRefundRequest($this->__http_url . '?' . $this->createLinkstringUrlencode($para));
     }
 
     /**
@@ -202,7 +199,8 @@ class SdkPayment
         return $this;
     }
 
-    public function setAlipayServerUrl($url){
+    public function setAlipayServerUrl($url)
+    {
         $this->__http_url = $url;
         return $this;
     }
@@ -257,10 +255,10 @@ class SdkPayment
 
     /**
      * 生成要请求给支付宝的参数数组
-     * @param $para_temp 请求前的参数数组
-     * @return 要请求的参数数组
+     * @param $para_temp array 请求前的参数数组
+     * @return array 要请求的参数数组
      */
-    private function buildRequestPara($para_temp)
+    private function buildRequestPara($para_temp, $quote = true)
     {
         //除去待签名参数数组中的空值和签名参数
         $para_filter = $this->paraFilter($para_temp);
@@ -269,7 +267,7 @@ class SdkPayment
         $para_sort = $this->argSort($para_filter);
 
         //生成签名结果
-        $mysign = $this->buildRequestMysign($para_sort);
+        $mysign = $this->buildRequestMysign($para_sort, $quote);
 
         //签名结果与签名方式加入请求提交参数组中
         $para_sort['sign'] = $mysign;
@@ -280,13 +278,13 @@ class SdkPayment
 
     /**
      * 生成签名结果
-     * @param $para_sort 已排序要签名的数组
-     * return 签名结果字符串
+     * @param $para_sort array 已排序要签名的数组
+     * @return string 签名结果字符串
      */
-    private function buildRequestMysign($para_sort)
+    private function buildRequestMysign($para_sort, $quote = true)
     {
         //把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
-        $prestr = $this->createLinkstring($para_sort);
+        $prestr = $this->createLinkstring($para_sort, $quote);
         $mysign = '';
         switch (strtoupper(trim($this->sign_type))) {
             case 'MD5':
@@ -307,9 +305,9 @@ class SdkPayment
 
     /**
      * 获取返回时的签名验证结果
-     * @param $para_temp 通知返回来的参数数组
-     * @param $sign 返回的签名结果
-     * @return 签名验证结果
+     * @param $para_temp array 通知返回来的参数数组
+     * @param $sign string 返回的签名结果
+     * @return boolean 签名验证结果
      */
     function getSignVeryfy($para_temp, $sign)
     {
@@ -321,8 +319,6 @@ class SdkPayment
 
         //把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
         $prestr = str_replace('"', '', $this->createLinkstring($para_sort));
-
-//        Log::info('String to verify: ' . $prestr);
 
         // $prestr = iconv('utf-8', 'gbk', $prestr);
 
@@ -348,8 +344,8 @@ class SdkPayment
 
     /**
      * 除去数组中的空值和签名参数
-     * @param $para 签名参数组
-     * return 去掉空值与签名参数后的新签名参数组
+     * @param $para array 签名参数组
+     * @return array 去掉空值与签名参数后的新签名参数组
      */
     private function paraFilter($para)
     {
@@ -366,8 +362,8 @@ class SdkPayment
 
     /**
      * 对数组排序
-     * @param $para 排序前的数组
-     * return 排序后的数组
+     * @param $para array 排序前的数组
+     * @return array 排序后的数组
      */
     private
     function argSort($para)
@@ -379,10 +375,10 @@ class SdkPayment
 
     /**
      * RSA验签
-     * @param $data 待签名数据
-     * @param $ali_public_key_path 支付宝的公钥文件路径
-     * @param $sign 要校对的的签名结果
-     * return 验证结果
+     * @param $data string 待签名数据
+     * @param $public_key_path string 支付宝的公钥文件路径
+     * @param $sign string 要校对的的签名结果
+     * @return boolean 验证结果
      */
     private
     function rsaVerify($data, $public_key_path, $sign)
@@ -398,7 +394,7 @@ class SdkPayment
      * RSA签名
      * @param $data 待签名数据
      * @param $private_key_path 商户私钥文件路径
-     * return 签名结果
+     * @return 签名结果
      */
     private
     function rsaSign($data, $private_key_path)
@@ -414,10 +410,10 @@ class SdkPayment
 
     /**
      * RSA验签
-     * @param $data 待签名数据
-     * @param $ali_public_key_path 支付宝的公钥文件路径
-     * @param $sign 要校对的的签名结果
-     * return 验证结果
+     * @param $data string 待签名数据
+     * @param $ali_public_key_path string 支付宝的公钥文件路径
+     * @param $sign string 要校对的的签名结果
+     * @return boolean 验证结果
      */
     private
     function rsa2Verify($data, $public_key_path, $sign)
@@ -426,15 +422,14 @@ class SdkPayment
         $res = openssl_get_publickey($pubKey);
         $result = (bool)openssl_verify($data, base64_decode($sign), $res, OPENSSL_ALGO_SHA256);
         openssl_free_key($res);
-//        Log::info('Verify RSA2 Result: ' . $result);
         return $result;
     }
 
     /**
      * RSA签名
-     * @param $data 待签名数据
-     * @param $private_key_path 商户私钥文件路径
-     * return 签名结果
+     * @param $data string 待签名数据
+     * @param $private_key_path string 商户私钥文件路径
+     * @return string 签名结果
      */
     private
     function rsa2Sign($data, $private_key_path)
@@ -447,21 +442,23 @@ class SdkPayment
         //base64编码
         $sign = base64_encode($sign);
         $sign = urlencode($sign);
-//        Log::info('The Sign: ' . $sign);
         return $sign;
     }
 
     /**
      * 把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
-     * @param $para 需要拼接的数组
-     * return 拼接完成以后的字符串
+     * @param $para array 需要拼接的数组
+     * @return string 拼接完成以后的字符串
      */
     private
-    function createLinkstring($para)
+    function createLinkstring($para, $quote = true)
     {
         $arg = '';
         foreach ($para as $key => $val) {
-            $arg .= $key . '=' . '"' . $val . '"' . '&';
+            if ($quote)
+                $arg .= $key . '=' . '"' . $val . '"' . '&';
+            else
+                $arg .= $key . '=' . $val . '&';
         }
         //去掉最后一个&字符
         $arg = substr($arg, 0, strlen($arg) - 1);
@@ -476,8 +473,8 @@ class SdkPayment
 
     /**
      * 把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串，并对字符串做urlencode编码
-     * @param $para 需要拼接的数组
-     * return 拼接完成以后的字符串
+     * @param $para array 需要拼接的数组
+     * @return string 拼接完成以后的字符串
      */
     private
     function createLinkstringUrlencode($para)
@@ -499,8 +496,8 @@ class SdkPayment
 
     /**
      * 获取远程服务器ATN结果,验证返回URL
-     * @param $notify_id 通知校验ID
-     * @return 服务器ATN结果
+     * @param $notify_id string 通知校验ID
+     * @return string 服务器ATN结果
      * 验证结果集：
      * invalid命令参数不对 出现这个错误，请检测返回处理中partner和key是否为空
      * true 返回正确信息
@@ -518,9 +515,7 @@ class SdkPayment
         //     $veryfy_url = $this->__http_verify_url;
         // }
         $veryfy_url = $veryfy_url . 'partner=' . $partner . '&notify_id=' . $notify_id;
-//        Log::info('Verify Sent By Alipay Request: ' . $veryfy_url);
         $response_txt = $this->getHttpResponseGET($veryfy_url, $this->cacert);
-//        Log::info('Verify Sent By Alipay Response: ' . $response_txt);
         return $response_txt;
     }
 
@@ -529,9 +524,9 @@ class SdkPayment
      * 注意：
      * 1.使用Crul需要修改服务器中php.ini文件的设置，找到php_curl.dll去掉前面的";"就行了
      * 2.文件夹中cacert.pem是SSL证书请保证其路径有效，目前默认路径是：getcwd().'\\cacert.pem'
-     * @param $url 指定URL完整路径地址
-     * @param $cacert_url 指定当前工作目录绝对路径
-     * return 远程输出的数据
+     * @param $url string 指定URL完整路径地址
+     * @param $cacert_url string 指定当前工作目录绝对路径
+     * @return string 远程输出的数据
      */
     private
     function getHttpResponseGET($url, $cacert_url)
@@ -549,7 +544,8 @@ class SdkPayment
         return $responseText;
     }
 
-    private function sendRefundRequest($url){
+    private function sendRefundRequest($url)
+    {
         $curl = curl_init($url);
         //        curl_setopt($curl, CURLOPT_HEADER, 0); // 过滤HTTP头
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1); // 显示输出结果
