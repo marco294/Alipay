@@ -14,7 +14,7 @@ class SdkPayment
 
     private $__http_verify_url = 'http://notify.alipay.com/trade/notify_query.do?';
 
-    private $__http_url = 'https://openapi.alipaydev.com/gateway.do';
+    private $__http_url = 'https://intlmapi.alipay.com/gateway.do';
 
     private $partner;
 
