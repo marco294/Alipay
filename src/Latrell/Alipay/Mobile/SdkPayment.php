@@ -118,7 +118,7 @@ class SdkPayment
 
         $para = $this->buildRequestPara($parameter, false);
 
-        return $this->sendRefundRequest($this->__http_url . '?' . $this->createLinkstringUrlencode($para));
+        return $this->sendRefundRequest($this->__http_url . '?' . $this->createLinkstring($para, false));
     }
 
     /**
@@ -322,9 +322,6 @@ class SdkPayment
 
         // $prestr = iconv('utf-8', 'gbk', $prestr);
 
-        // Log::info('New GBK String to verify: '.$prestr);
-
-        $is_sgin = false;
         switch (strtoupper(trim($this->sign_type))) {
             case 'MD5':
                 $is_sgin = $this->md5Verify($prestr, $sign, $this->key);
